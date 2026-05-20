@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 1.1
+local script_version = 1.3
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley%20(40).lua"
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/version.txt"
 
@@ -485,7 +485,7 @@ function main()
                     role = "Тестер скрипта"
                 end
                 
-                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s. Добро пожаловать.", cleanName)), -1)
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s. Добро пожаловать. Версия скрипта: %.1f", cleanName, script_version)), -1)
                 sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Вы успешно авторизованы как {00FF00}%s{FFFFFF}. Приятного пользования.", role)), -1)
             end
         end
