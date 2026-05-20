@@ -7,8 +7,9 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 1.8
+local script_version = 1.9
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
+local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
@@ -264,7 +265,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text(string.format("Текущая версия скрипта: %.1f", script_version))
             mimgui.Spacing()
             mimgui.TextColored(mimgui.ImVec4(0.9, 0.7, 0.1, 1.0), "Что нового было добавлено:")
-            mimgui.Text("- Последнее обновление: 22 мая 2026 года.")
+            mimgui.Text("- Последнее обновление: 20 мая 2026 года.")
             mimgui.Text("- Добавлен полноэкранный MImGui интерфейс с вкладками.")
             mimgui.Text("- Меню разделено на сайдбар (как в продвинутых хелперах).")
             mimgui.Text("- Рабочий автокорректор для команд /r, /f, /s, /d, /m.")
@@ -601,15 +602,16 @@ function checkUpdate()
                 os.remove(f_path)
                 
                 local new_version = tonumber(content:match('"version"%s*:%s*([%d%.]+)'))
-                local update_link = content:match('"updateurl"%s*:%s*"([^"]+)"')
                 
-                if new_version and update_link then
+                if new_version then
                     if new_version > script_version then
                         sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
-                        downloadUrlToFile(update_link, thisScript().path, function(id2, status2, p12, p22)
+                        downloadUrlToFile(update_url, thisScript().path, function(id2, status2, p12, p22)
                             if status2 == 6 then
                                 sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
                                 thisScript():reload()
+                            elseif status2 == 58 then
+                                sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки файла! Попробуйте позже."), -1)
                             end
                         end)
                     end
