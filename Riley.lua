@@ -599,21 +599,19 @@ function checkUpdate()
                 local content = f:read("*a")
                 f:close()
                 os.remove(f_path)
-                local json = require 'cjson'
-                local result, data = pcall(json.decode, content)
-                if result and data then
-                    local new_version = tonumber(data.version)
-                    if new_version and new_version > script_version then
+                
+                local new_version = tonumber(content:match('"version"%s*:%s*([%d%.]+)'))
+                local update_link = content:match('"updateurl"%s*:%s*"([^"]+)"')
+                
+                if new_version and update_link then
+                    if new_version > script_version then
                         sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
-                        local update_link = data.updateurl
-                        if update_link then
-                            downloadUrlToFile(update_link, thisScript().path, function(id2, status2, p12, p22)
-                                if status2 == 6 then
-                                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
-                                    thisScript():reload()
-                                end
-                            end)
-                        end
+                        downloadUrlToFile(update_link, thisScript().path, function(id2, status2, p12, p22)
+                            if status2 == 6 then
+                                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
+                                thisScript():reload()
+                            end
+                        end)
                     end
                 end
             end
