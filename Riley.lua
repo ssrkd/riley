@@ -599,8 +599,8 @@ function checkUpdate()
                 local content = f:read("*a")
                 f:close()
                 os.remove(f_path)
-                
-                local result, data = pcall(decodeJson, content)
+                local json = require 'cjson'
+                local result, data = pcall(json.decode, content)
                 if result and data then
                     local new_version = tonumber(data.version)
                     if new_version and new_version > script_version then
