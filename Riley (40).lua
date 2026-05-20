@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 1.3
+local script_version = 1.4
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley%20(40).lua"
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/version.txt"
 
@@ -26,7 +26,9 @@ local defaultSettings = {
         autohi_text = u8:encode("Да-да, на связи."),
         siren_enabled = true,
         carlock_enabled = true,
-        driftmode_enabled = false
+        driftmode_enabled = false,
+        dev_color = "FFFFFF",
+        tester_color = "FF0000"
     }
 }
 
@@ -43,6 +45,24 @@ local testers = {
 
 local ini = inicfg.load(defaultSettings, directIni)
 
+local function hexToFloat(hex)
+    if not hex or type(hex) ~= "string" or #hex < 6 then hex = "FFFFFF" end
+    local r = tonumber(hex:sub(1,2), 16) or 255
+    local g = tonumber(hex:sub(3,4), 16) or 255
+    local b = tonumber(hex:sub(5,6), 16) or 255
+    return {r / 255, g / 255, b / 255}
+end
+
+local function floatToHex(floatArr)
+    local r = math.floor(floatArr[0] * 255)
+    local g = math.floor(floatArr[1] * 255)
+    local b = math.floor(floatArr[2] * 255)
+    return string.format("%02X%02X%02X", r, g, b)
+end
+
+local devColorArr = hexToFloat(ini.main.dev_color)
+local testerColorArr = hexToFloat(ini.main.tester_color)
+
 local settings = {
     where = mimgui.new.bool(ini.main.where),
     time = mimgui.new.bool(ini.main.time),
@@ -52,7 +72,9 @@ local settings = {
     autohiText = mimgui.new.char[256](u8:decode(ini.main.autohi_text)),
     sirenEnabled = mimgui.new.bool(ini.main.siren_enabled),
     carlockEnabled = mimgui.new.bool(ini.main.carlock_enabled),
-    driftModeEnabled = mimgui.new.bool(ini.main.driftmode_enabled)
+    driftModeEnabled = mimgui.new.bool(ini.main.driftmode_enabled),
+    devColor = mimgui.new.float[3](devColorArr[1], devColorArr[2], devColorArr[3]),
+    testerColor = mimgui.new.float[3](testerColorArr[1], testerColorArr[2], testerColorArr[3])
 }
 
 local function saveSettings()
@@ -65,6 +87,8 @@ local function saveSettings()
     ini.main.siren_enabled = settings.sirenEnabled[0]
     ini.main.carlock_enabled = settings.carlockEnabled[0]
     ini.main.driftmode_enabled = settings.driftModeEnabled[0]
+    ini.main.dev_color = floatToHex(settings.devColor)
+    ini.main.tester_color = floatToHex(settings.testerColor)
     inicfg.save(ini, directIni)
 end
 
@@ -231,6 +255,14 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
                 mimgui.BeginTooltip()
                 mimgui.Text("Ставит заглавную букву и точку в конце. Работает и в рациях.")
                 mimgui.EndTooltip()
+            end
+            
+            if isDeveloper() or isTester() then
+                mimgui.Spacing()
+                mimgui.Text("Цвета в рации")
+                mimgui.Separator()
+                if mimgui.ColorEdit3("Разработчики", settings.devColor) then saveSettings() end
+                if mimgui.ColorEdit3("Тестеры", settings.testerColor) then saveSettings() end
             end
             
         elseif currentTab[0] == 3 then
@@ -418,8 +450,8 @@ function sampev.onServerMessage(color, text)
             end
         end
 
-        checkAndHighlight(founders, "{FFFFFF}")      -- Белый для разработчиков
-        checkAndHighlight(testers, "{FF0000}")       -- Красный для тестеров
+        checkAndHighlight(founders, "{" .. floatToHex(settings.devColor) .. "}")      -- Цвет для разработчиков
+        checkAndHighlight(testers, "{" .. floatToHex(settings.testerColor) .. "}")       -- Цвет для тестеров
         
         if changed then
             return {color, modified}
