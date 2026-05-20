@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 1.6
+local script_version = 1.7
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 
 local showMenu = mimgui.new.bool(false)
@@ -264,7 +264,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text(string.format("Текущая версия скрипта: %.1f", script_version))
             mimgui.Spacing()
             mimgui.TextColored(mimgui.ImVec4(0.9, 0.7, 0.1, 1.0), "Что нового было добавлено:")
-            mimgui.Text("- Последнее обновление: 20 мая 2026 года.")
+            mimgui.Text("- Последнее обновление: 21 мая 2026 года.")
             mimgui.Text("- Добавлен полноэкранный MImGui интерфейс с вкладками.")
             mimgui.Text("- Меню разделено на сайдбар (как в продвинутых хелперах).")
             mimgui.Text("- Рабочий автокорректор для команд /r, /f, /s, /d, /m.")
