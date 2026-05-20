@@ -1,4 +1,4 @@
 {
-  "updateurl": "https://raw.githubusercontent.com/srkkd/riley-system/main/moonloader/Riley.luac",
-  "latest": "1.5"
+  "version": 1.5,
+  "updateurl": "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 }
