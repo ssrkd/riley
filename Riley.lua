@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 1.5
+local script_version = 1.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 
 local showMenu = mimgui.new.bool(false)
@@ -256,13 +256,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
                 mimgui.EndTooltip()
             end
             
-            if isDeveloper() or isTester() then
-                mimgui.Spacing()
-                mimgui.Text("Цвета в рации")
-                mimgui.Separator()
-                if mimgui.ColorEdit3("Разработчики", settings.devColor) then saveSettings() end
-                if mimgui.ColorEdit3("Тестеры", settings.testerColor) then saveSettings() end
-            end
+
             
         elseif currentTab[0] == 3 then
             mimgui.Text("Обновления и информация")
@@ -308,6 +302,12 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Spacing()
             mimgui.Separator()
             mimgui.TextWrapped("Настройка ролей теперь производится СТРОГО через исходный код скрипта для обеспечения максимальной безопасности. Чтобы добавить тестера, отредактируйте таблицу 'testers' в начале файла.")
+            
+            mimgui.Spacing()
+            mimgui.Text("Управление цветами в рации")
+            mimgui.Separator()
+            if mimgui.ColorEdit3("Цвет Разработчиков", settings.devColor) then saveSettings() end
+            if mimgui.ColorEdit3("Цвет Тестеров", settings.testerColor) then saveSettings() end
         end
         
         mimgui.EndChild()
