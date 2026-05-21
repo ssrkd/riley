@@ -649,7 +649,7 @@ function checkUpdate()
                     
                     sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Файл версии загружен."), -1)
                     
-                    local version_str = content:match('"version"%s*:%s*([%d%.%,]+)')
+                    local version_str = content:match('"version"%s*:%s*([%d%.%,]+)') or content:match('"version"%s*:%s*(%d+%.?%d*)')
                     local new_version = parseVersion(version_str)
                     
                     if not new_version then
