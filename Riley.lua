@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.4
+local script_version = 4.5
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -338,24 +338,21 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text("Команды управления:")
             mimgui.Spacing()
             
-            if mimgui.Button("/listusers - Показать список пользователей") then
+            if mimgui.Button("/listusers") then
                 sampSendChat("/listusers")
             end
-            mimgui.SameLine()
-            if mimgui.Button("/addowner [ник] - Добавить владельца") then
-                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /addowner [ник]"), -1)
+            
+            if mimgui.Button("/addowner [ник]") then
+                sampSendChat("/addowner")
             end
             
-            if mimgui.Button("/addtester [ник] - Добавить тестера") then
-                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /addtester [ник]"), -1)
-            end
-            mimgui.SameLine()
-            if mimgui.Button("/removeuser [ник] - Удалить пользователя") then
-                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /removeuser [ник]"), -1)
+            if mimgui.Button("/addtester [ник]") then
+                sampSendChat("/addtester")
             end
             
-            mimgui.Spacing()
-            mimgui.TextWrapped("Примечание: Для добавления/удаления пользователей используйте Supabase Dashboard.")
+            if mimgui.Button("/removeuser [ник]") then
+                sampSendChat("/removeuser")
+            end
             
             mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
@@ -560,7 +557,15 @@ function main()
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
             return
         end
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для добавления владельцев."), -1)
+        if arg == "" then
+            sampAddChatMessage(u8:decode("Используйте: /addowner [ник]"), -1)
+            return
+        end
+        
+        -- Добавляем оба варианта ника
+        userRoles[arg] = "owner"
+        userRoles[arg:gsub(" ", "_")] = "owner"
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец", arg)), -1)
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -568,7 +573,15 @@ function main()
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
             return
         end
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для добавления тестеров."), -1)
+        if arg == "" then
+            sampAddChatMessage(u8:decode("Используйте: /addtester [ник]"), -1)
+            return
+        end
+        
+        -- Добавляем оба варианта ника
+        userRoles[arg] = "tester"
+        userRoles[arg:gsub(" ", "_")] = "tester"
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер", arg)), -1)
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
@@ -576,7 +589,15 @@ function main()
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
             return
         end
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для удаления пользователей."), -1)
+        if arg == "" then
+            sampAddChatMessage(u8:decode("Используйте: /removeuser [ник]"), -1)
+            return
+        end
+        
+        -- Удаляем оба варианта ника
+        userRoles[arg] = nil
+        userRoles[arg:gsub(" ", "_")] = nil
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s удален", arg)), -1)
     end)
     
     sampRegisterChatCommand("listusers", function()
@@ -585,19 +606,20 @@ function main()
         local cleanName = myName:gsub("_", " ")
         local myRole = userRoles[cleanName] or userRoles[myName] or "none"
         
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Твой ник: %s (%s). Роль: %s", myName, cleanName, myRole)), -1)
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}userRoles[%s] = %s", cleanName, userRoles[cleanName] or "nil")), -1)
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}userRoles[%s] = %s", myName, userRoles[myName] or "nil")), -1)
-        
         if not isDeveloper() then
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
             return
         end
         
         sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Список пользователей:"), -1)
+        local shown = {}
         for nickname, role in pairs(userRoles) do
-            local roleText = role == "owner" and "Владелец" or "Тестер"
-            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - %s", nickname, roleText)), -1)
+            -- Показываем только ники без подчеркиваний (без дубликатов)
+            if not nickname:find("_") then
+                local roleText = role == "owner" and "Владелец" or "Тестер"
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - %s", nickname, roleText)), -1)
+                shown[nickname] = true
+            end
         end
     end)
 
