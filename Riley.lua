@@ -122,6 +122,58 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
+-- HTTP POST запрос с headers через ffi
+local function httpPost(url, body, headers, callback)
+    local wininet = ffi.load("wininet")
+    
+    ffi.cdef[[
+        typedef void* HINTERNET;
+        HINTERNET InternetOpenA(const char* lpszAgent, DWORD dwAccessType, const char* lpszProxy, const char* lpszProxyBypass, DWORD dwFlags);
+        HINTERNET InternetConnectA(HINTERNET hInternet, const char* lpszServerName, INTERNET_PORT nServerPort, const char* lpszUsername, const char* lpszPassword, DWORD dwService, DWORD dwFlags, DWORD_PTR dwContext);
+        HINTERNET HttpOpenRequestA(HINTERNET hConnect, const char* lpszVerb, const char* lpszObjectName, const char* lpszVersion, const char* lpszReferrer, const char* lpszAcceptTypes, DWORD dwFlags, DWORD_PTR dwContext);
+        BOOL HttpSendRequestA(HINTERNET hRequest, const char* lpszHeaders, DWORD dwHeadersLength, const void* lpOptional, DWORD dwOptionalLength);
+        BOOL InternetReadFile(HINTERNET hFile, void* lpBuffer, DWORD dwNumberOfBytesToRead, DWORD* lpdwNumberOfBytesRead);
+        BOOL InternetCloseHandle(HINTERNET hInternet);
+        typedef unsigned short INTERNET_PORT;
+    ]]
+    
+    local hInternet = wininet.InternetOpenA("Riley", 1, nil, nil, 0)
+    if hInternet == nil then return false end
+    
+    local hConnect = wininet.InternetConnectA(hInternet, supabase_url:match("https://(.+)"), 443, nil, nil, 3, 0, 0)
+    if hConnect == nil then
+        wininet.InternetCloseHandle(hInternet)
+        return false
+    end
+    
+    local hRequest = wininet.HttpOpenRequestA(hConnect, "POST", "/rest/v1/users", nil, nil, nil, 0, 0)
+    if hRequest == nil then
+        wininet.InternetCloseHandle(hConnect)
+        wininet.InternetCloseHandle(hInternet)
+        return false
+    end
+    
+    -- Формируем headers
+    local headers_str = ""
+    for k, v in pairs(headers) do
+        headers_str = headers_str .. k .. ": " .. v .. "\r\n"
+    end
+    
+    local success = wininet.HttpSendRequestA(hRequest, headers_str, #headers_str, body, #body)
+    if not success then
+        wininet.InternetCloseHandle(hRequest)
+        wininet.InternetCloseHandle(hConnect)
+        wininet.InternetCloseHandle(hInternet)
+        return false
+    end
+    
+    wininet.InternetCloseHandle(hRequest)
+    wininet.InternetCloseHandle(hConnect)
+    wininet.InternetCloseHandle(hInternet)
+    
+    return true
+end
+
 -- Загрузка ролей из Supabase через GET запрос (apikey в URL)
 local function loadRolesFromSupabase()
     local url = supabase_url .. "/rest/v1/users?select=nickname,role&apikey=" .. supabase_key
@@ -364,7 +416,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             end
             
             mimgui.Spacing()
-            mimgui.TextWrapped("{FF0000}Внимание: Изменения сохраняются только локально (в памяти). При перезагрузке скрипта изменения сбросятся. Для постоянного хранения нужно интеграция с Supabase.")
+            mimgui.TextWrapped("{FF0000}Внимание: Изменения сохраняются локально (в памяти). При перезагрузке скрипта изменения сбросятся. Для постоянного хранения добавьте/удалите пользователей в Supabase Dashboard.")
             mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
@@ -585,6 +637,8 @@ function main()
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
+        
+        -- TODO: Добавить HTTP POST запрос к Supabase
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -601,6 +655,8 @@ function main()
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
+        
+        -- TODO: Добавить HTTP POST запрос к Supabase
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
@@ -623,6 +679,8 @@ function main()
         userRoles[arg] = nil
         userRoles[arg:gsub(" ", "_")] = nil
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s удален (локально). Удалите из Supabase Dashboard для постоянного хранения.", arg)), -1)
+        
+        -- TODO: Добавить HTTP DELETE запрос к Supabase
     end)
     
     sampRegisterChatCommand("listusers", function()
