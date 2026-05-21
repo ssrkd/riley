@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.5
+local script_version = 4.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -420,6 +420,14 @@ local function processAutocorrect(text, noDot)
     if not text or #text == 0 then return text end
     if not settings.autocorrect[0] then return text end
     
+    -- Замена сокращений на полные слова
+    local lowerText = text:lower()
+    if lowerText == "n" or lowerText == "rn" or lowerText == "fn" then
+        text = "нет"
+    elseif lowerText == "ps" then
+        text = "пас"
+    end
+    
     local first = text:sub(1,1)
     if first == "" then return text end
     
@@ -773,18 +781,13 @@ function checkUpdate()
                         version_str = version_str:gsub("[,%s]", "")
                     end
                     
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Debug] Загружена версия: %s", version_str or "nil")), -1)
-                    
                     local new_version = parseVersion(version_str)
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Debug] Распознано как число: %s", tostring(new_version))), -1)
                     
                     if not new_version then
-                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось распознать версию."), -1)
                         return
                     end
                     
                     local current_ver = parseVersion(tostring(script_version)) or script_version
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Debug] Текущая: %.1f, Новая: %.1f", current_ver, new_version)), -1)
                     
                     if new_version > current_ver then
                         sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Есть обновление. Обновляю..."), -1)
