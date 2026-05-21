@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.4
+local script_version = 3.5
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json?t=" .. os.time()
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua?t=" .. os.time()
 
@@ -649,9 +649,13 @@ function checkUpdate()
                     os.remove(f_path)
                     
                     sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Файл версии загружен."), -1)
+                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Содержимое: " .. content), -1)
                     
                     local version_str = content:match('"version"%s*:%s*([%d%.%,]+)') or content:match('"version"%s*:%s*(%d+%.?%d*)')
+                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Распознанная строка версии: %s", version_str or "nil")), -1)
+                    
                     local new_version = parseVersion(version_str)
+                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Распознанное число версии: %s", new_version or "nil")), -1)
                     
                     if not new_version then
                         sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось распознать версию на сервере."), -1)
