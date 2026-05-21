@@ -7,9 +7,9 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 2.5
-local version_url = "https://raw.gitmirror.com/ssrkd/riley/main/Rileyversion.json"
-local update_url = "https://raw.gitmirror.com/ssrkd/riley/main/Riley.lua"
+local script_version = 2.6
+local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
+local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
