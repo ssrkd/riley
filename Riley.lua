@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.3
+local script_version = 5.4
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -125,7 +125,11 @@ end
 
 -- HTTP POST запрос с headers через ffi
 local function httpPost(url, body, headers, callback)
-    local wininet = ffi.load("wininet")
+    local ok, wininet = pcall(ffi.load, "wininet")
+    if not ok then
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: wininet не доступен"), -1)
+        return false
+    end
     
     ffi.cdef[[
         typedef void* HINTERNET;
@@ -139,11 +143,16 @@ local function httpPost(url, body, headers, callback)
     ]]
     
     local hInternet = wininet.InternetOpenA("Riley", 1, nil, nil, 0)
-    if hInternet == nil then return false end
+    if hInternet == nil then
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка InternetOpen"), -1)
+        return false
+    end
     
-    local hConnect = wininet.InternetConnectA(hInternet, supabase_url:match("https://(.+)"), 443, nil, nil, 3, 0, 0)
+    local server = supabase_url:match("https://(.+)")
+    local hConnect = wininet.InternetConnectA(hInternet, server, 443, nil, nil, 3, 0, 0)
     if hConnect == nil then
         wininet.InternetCloseHandle(hInternet)
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка InternetConnect"), -1)
         return false
     end
     
@@ -151,6 +160,7 @@ local function httpPost(url, body, headers, callback)
     if hRequest == nil then
         wininet.InternetCloseHandle(hConnect)
         wininet.InternetCloseHandle(hInternet)
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка HttpOpenRequest"), -1)
         return false
     end
     
@@ -165,6 +175,7 @@ local function httpPost(url, body, headers, callback)
         wininet.InternetCloseHandle(hRequest)
         wininet.InternetCloseHandle(hConnect)
         wininet.InternetCloseHandle(hInternet)
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка HttpSendRequest"), -1)
         return false
     end
     
@@ -198,9 +209,21 @@ local function loadRolesFromSupabase()
                             end
                         end
                         rolesLoaded = true
+                        
+                        local count = 0
+                        for k, v in pairs(userRoles) do
+                            count = count + 1
+                        end
+                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены из Supabase: %d пользователей", count)), -1)
+                    else
+                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки ролей из Supabase"), -1)
                     end
+                else
+                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть файл ролей"), -1)
                 end
             end)
+        else
+            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки из Supabase. Статус: %d", status)), -1)
         end
     end)
 end
