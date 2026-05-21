@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.7
+local script_version = 3.8
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -460,21 +460,13 @@ function sampev.onServerMessage(color, text)
 end
 
 function main()
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Инициализация скрипта... Версия: %.1f", script_version)), -1)
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Путь скрипта: %s", thisScript().path)), -1)
-    
     while not isSampLoaded() or not isSampfuncsLoaded() or not isSampAvailable() do
         wait(100)
     end
     
-    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}SAMP загружен. Регистрация команд..."), -1)
-    
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Меню: " .. (showMenu[0] and "открыто" or "закрыто")), -1)
     end)
-    
-    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Команда /rh зарегистрирована."), -1)
     
     sampRegisterChatCommand("act", function()
         showAct[0] = not showAct[0]
@@ -631,7 +623,6 @@ function checkUpdate()
         end
     end
     
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Текущая версия: %.1f. Проверка обновлений...", script_version)), -1)
     
     downloadUrlToFile(version_url, f_path, function(id, status, p1, p2)
         if status == 6 then -- Download finished successfully
@@ -648,30 +639,21 @@ function checkUpdate()
                     f:close()
                     os.remove(f_path)
                     
-                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Файл версии загружен."), -1)
-                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Содержимое: " .. content), -1)
-                    
                     local version_str = content:match('"version"%s*:%s*([%d%.]+)') or content:match('"version"%s*:%s*(%d+%.?%d*)')
-                    -- Убираем запятые и пробелы в конце
                     if version_str then
                         version_str = version_str:gsub("[,%s]", "")
                     end
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Распознанная строка версии: %s", version_str or "nil")), -1)
                     
                     local new_version = parseVersion(version_str)
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Распознанное число версии: %s", new_version or "nil")), -1)
                     
                     if not new_version then
-                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось распознать версию на сервере."), -1)
                         return
                     end
                     
                     local current_ver = parseVersion(tostring(script_version)) or script_version
                     
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Текущая: %.1f, Удаленная: %.1f", current_ver, new_version)), -1)
-                    
                     if new_version > current_ver then
-                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
+                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Есть обновление. Обновляю..."), -1)
                         
                         downloadUrlToFile(update_url, update_tmp, function(id2, status2, p12, p22)
                             if status2 == 6 then
@@ -693,7 +675,6 @@ function checkUpdate()
                                             return
                                         end
                                         
-                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Установка обновления..."), -1)
                                         local f_main = io.open(thisScript().path, "w")
                                         if not f_main then
                                             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось обновить файл скрипта."), -1)
@@ -704,7 +685,7 @@ function checkUpdate()
                                         f_main:close()
                                         os.remove(update_tmp)
                                         
-                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
+                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Успешно. Версия скрипта: " .. tostring(new_version)), -1)
                                         thisScript():reload()
                                     end)
                                     
@@ -715,7 +696,7 @@ function checkUpdate()
                             end
                         end)
                     else
-                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}У вас последняя версия скрипта."), -1)
+                        -- Нет обновлений, молчим
                     end
                 end)
                 
