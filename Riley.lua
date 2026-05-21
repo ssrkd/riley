@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.6
+local script_version = 5.7
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -567,7 +567,7 @@ function sampev.onSendCommand(cmd)
 
     if settings.autocorrect[0] and prefix and text and #text > 0 then
         local lowerPref = prefix:lower()
-        if lowerPref == "/r" or lowerPref == "/f" or lowerPref == "/rn" or lowerPref == "/fn" or lowerPref == "/s" or lowerPref == "/m" or lowerPref == "/d" or lowerPref == "/do" then
+        if lowerPref == "/r" or lowerPref == "/f" or lowerPref == "/rn" or lowerPref == "/fn" or lowerPref == "/s" or lowerPref == "/m" or lowerPref == "/d" or lowerPref == "/do" or lowerPref == "/n" or lowerPref == "/ps" then
             text = processAutocorrect(text, false)
             return {prefix .. " " .. text}
         end
