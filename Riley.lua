@@ -7,9 +7,9 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 2.4
-local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
-local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
+local script_version = 2.5
+local version_url = "https://raw.gitmirror.com/ssrkd/riley/main/Rileyversion.json"
+local update_url = "https://raw.gitmirror.com/ssrkd/riley/main/Riley.lua"
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
@@ -627,63 +627,69 @@ function checkUpdate()
     
     downloadUrlToFile(version_url, f_path, function(id, status, p1, p2)
         if status == 6 then -- Download finished
-            sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл версии загружен, чтение..."), -1)
-            local f = io.open(f_path, "r")
-            if f then
-                local content = f:read("*a")
-                f:close()
-                os.remove(f_path)
-                
-                local version_str = content:match('"version"%s*:%s*([%d%.%,]+)')
-                local new_version = parseVersion(version_str)
-                
-                if new_version then
-                    local current_ver = parseVersion(tostring(script_version)) or script_version
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Текущая: %.1f, Новая: %.1f", current_ver, new_version)), -1)
+            lua_thread.create(function()
+                wait(250) -- Wait 250ms for Wine to unlock the file
+                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл версии загружен, чтение..."), -1)
+                local f = io.open(f_path, "r")
+                if f then
+                    local content = f:read("*a")
+                    f:close()
+                    os.remove(f_path)
                     
-                    if new_version > current_ver then
-                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
-                        downloadUrlToFile(update_url, update_tmp, function(id2, status2, p12, p22)
-                            if status2 == 6 then
-                                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл обновления загружен, проверка..."), -1)
-                                local f_up = io.open(update_tmp, "r")
-                                if f_up then
-                                    local update_content = f_up:read("*a")
-                                    f_up:close()
-                                    
-                                    if update_content and #update_content > 1000 and update_content:find("mimgui") and isValidLua(update_content) then
-                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Установка обновления..."), -1)
-                                        local f_main = io.open(thisScript().path, "w")
-                                        if f_main then
-                                            f_main:write(update_content)
-                                            f_main:close()
-                                            os.remove(update_tmp)
-                                            sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
-                                            thisScript():reload()
+                    local version_str = content:match('"version"%s*:%s*([%d%.%,]+)')
+                    local new_version = parseVersion(version_str)
+                    
+                    if new_version then
+                        local current_ver = parseVersion(tostring(script_version)) or script_version
+                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Текущая: %.1f, Новая: %.1f", current_ver, new_version)), -1)
+                        
+                        if new_version > current_ver then
+                            sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
+                            downloadUrlToFile(update_url, update_tmp, function(id2, status2, p12, p22)
+                                if status2 == 6 then
+                                    lua_thread.create(function()
+                                        wait(250) -- Wait for Wine to unlock the update file
+                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл обновления загружен, проверка..."), -1)
+                                        local f_up = io.open(update_tmp, "r")
+                                        if f_up then
+                                            local update_content = f_up:read("*a")
+                                            f_up:close()
+                                            
+                                            if update_content and #update_content > 1000 and update_content:find("mimgui") and isValidLua(update_content) then
+                                                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Установка обновления..."), -1)
+                                                local f_main = io.open(thisScript().path, "w")
+                                                if f_main then
+                                                    f_main:write(update_content)
+                                                    f_main:close()
+                                                    os.remove(update_tmp)
+                                                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Скрипт успешно обновлен. Перезагрузка..."), -1)
+                                                    thisScript():reload()
+                                                else
+                                                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось обновить файл скрипта."), -1)
+                                                end
+                                            else
+                                                os.remove(update_tmp)
+                                                sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: скачанный файл поврежден или некорректен."), -1)
+                                            end
                                         else
-                                            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось обновить файл скрипта."), -1)
+                                            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка чтения временного файла обновления."), -1)
                                         end
-                                    else
-                                        os.remove(update_tmp)
-                                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: скачанный файл поврежден или некорректен."), -1)
-                                    end
-                                else
-                                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка чтения временного файла обновления."), -1)
+                                    end)
+                                elseif status2 == 58 then
+                                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки файла! Попробуйте позже."), -1)
+                                    os.remove(update_tmp)
                                 end
-                            elseif status2 == 58 then
-                                sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки файла! Попробуйте позже."), -1)
-                                os.remove(update_tmp)
-                            end
-                        end)
+                            end)
+                        else
+                            sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}У вас последняя версия скрипта."), -1)
+                        end
                     else
-                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}У вас последняя версия скрипта."), -1)
+                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось распознать версию на сервере."), -1)
                     end
                 else
-                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось распознать версию на сервере."), -1)
+                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть локальный файл версии."), -1)
                 end
-            else
-                sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть локальный файл версии."), -1)
-            end
+            end)
         elseif status == 58 then
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка проверки обновлений (сетевой сбой)."), -1)
         end
