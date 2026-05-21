@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 7.1
+local script_version = 7.2
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -367,12 +367,6 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             
             mimgui.Spacing()
             mimgui.TextWrapped("{FF0000}Внимание: Добавление/удаление пользователей только через Supabase Dashboard.")
-            mimgui.Spacing()
-            mimgui.Text("SQL запросы для управления:")
-            mimgui.Spacing()
-            mimgui.TextWrapped("{FFFFFF}INSERT INTO users (nickname, role) VALUES ('ник', 'owner');")
-            mimgui.TextWrapped("{FFFFFF}INSERT INTO users (nickname, role) VALUES ('ник', 'tester');")
-            mimgui.TextWrapped("{FFFFFF}DELETE FROM users WHERE nickname = 'ник';")
             mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
