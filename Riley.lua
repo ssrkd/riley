@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.1
+local script_version = 6.2
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -135,7 +135,7 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- HTTP POST запрос через socket (более надежный метод)
+-- HTTP POST запрос через socket с поддержкой редиректов
 local function httpPost(url, body, headers)
     local ok, socket = pcall(require, "socket")
     if not ok then
@@ -158,7 +158,8 @@ local function httpPost(url, body, headers)
         method = "POST",
         headers = headers_table,
         source = ltn12.source.string(body),
-        sink = ltn12.sink.table(response_body)
+        sink = ltn12.sink.table(response_body),
+        redirect = true  -- Следовать редиректам
     }
     
     sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTP POST: code=%s, result=%s", tostring(code), tostring(result))), -1)
