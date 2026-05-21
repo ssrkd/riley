@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 8.2
+local script_version = 8.3
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -336,25 +336,11 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Spacing()
             
             mimgui.TextColored(mimgui.ImVec4(0.0, 1.0, 1.0, 1.0), "Владельцы:")
-            local hasOwners = false
-            for nickname, role in pairs(userRoles) do
-                if role == "owner" and not nickname:find("_") then
-                    mimgui.Text("- " .. nickname)
-                    hasOwners = true
-                end
-            end
-            if not hasOwners then mimgui.Text("Список владельцев пуст.") end
+            mimgui.Text("Sakura Riley | Mark Travmatov | Kai Riley")
             
             mimgui.Spacing()
             mimgui.TextColored(mimgui.ImVec4(1.0, 0.3, 0.3, 1.0), "Тестеры:")
-            local hasTesters = false
-            for nickname, role in pairs(userRoles) do
-                if role == "tester" and not nickname:find("_") then
-                    mimgui.Text("- " .. nickname)
-                    hasTesters = true
-                end
-            end
-            if not hasTesters then mimgui.Text("Список тестеров пуст.") end
+            mimgui.Text("Klim Rozhdestvensky")
             
             mimgui.Spacing()
             mimgui.Separator()
