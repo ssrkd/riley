@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.2
+local script_version = 6.3
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -135,15 +135,14 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- HTTP POST запрос через socket с поддержкой редиректов
+-- HTTP POST запрос через luasec (HTTPS без редиректов)
 local function httpPost(url, body, headers)
-    local ok, socket = pcall(require, "socket")
+    local ok, https = pcall(require, "ssl.https")
     if not ok then
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: socket библиотека не доступна"), -1)
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: ssl.https не доступен"), -1)
         return false
     end
     
-    local http = require "socket.http"
     local ltn12 = require "ltn12"
     
     -- Формируем headers
@@ -153,16 +152,15 @@ local function httpPost(url, body, headers)
     end
     
     local response_body = {}
-    local result, code, response_headers, status = http.request{
+    local result, code, response_headers, status = https.request{
         url = url,
         method = "POST",
         headers = headers_table,
         source = ltn12.source.string(body),
-        sink = ltn12.sink.table(response_body),
-        redirect = true  -- Следовать редиректам
+        sink = ltn12.sink.table(response_body)
     }
     
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTP POST: code=%s, result=%s", tostring(code), tostring(result))), -1)
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTPS POST: code=%s, result=%s", tostring(code), tostring(result))), -1)
     
     if code == 200 or code == 201 then
         return true
