@@ -7,9 +7,9 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.1
-local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
-local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
+local script_version = 4.2
+local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json?t=" .. os.time()
+local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua?t=" .. os.time()
 
 -- Supabase конфигурация
 local supabase_url = "https://zfwdxcmbtbopqwptxxnv.supabase.co"
