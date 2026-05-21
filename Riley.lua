@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.5
+local script_version = 5.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -190,6 +190,8 @@ end
 local function loadRolesFromSupabase()
     local url = supabase_url .. "/rest/v1/users?select=nickname,role&apikey=" .. supabase_key
     
+    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Загрузка ролей из Supabase..."), -1)
+    
     downloadUrlToFile(url, getWorkingDirectory() .. "/config/roles_tmp.json", function(id, status, p1, p2)
         if status == 6 then
             lua_thread.create(function()
@@ -199,6 +201,8 @@ local function loadRolesFromSupabase()
                     local content = f:read("*a")
                     f:close()
                     os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
+                    
+                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Получено данных: %d символов", #content)), -1)
                     
                     local ok, data = pcall(loadstring("return " .. content))
                     if ok and data and type(data) == "table" then
@@ -216,7 +220,7 @@ local function loadRolesFromSupabase()
                         end
                         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены из Supabase: %d пользователей", count)), -1)
                     else
-                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки ролей из Supabase"), -1)
+                        sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка парсинга JSON. ok=%s, type=%s", tostring(ok), type(data))), -1)
                     end
                 else
                     sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть файл ролей"), -1)
