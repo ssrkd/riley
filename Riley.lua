@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.9
+local script_version = 3.10
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -141,18 +141,28 @@ local function loadRolesFromSupabase()
                     f:close()
                     os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
                     
+                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Загружено из Supabase: " .. content), -1)
+                    
                     local ok, data = pcall(loadstring("return " .. content))
                     if ok and data and type(data) == "table" then
                         userRoles = {}
                         for _, user in ipairs(data) do
                             if user.nickname and user.role then
                                 userRoles[user.nickname] = user.role
+                                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - %s", user.nickname, user.role)), -1)
                             end
                         end
                         rolesLoaded = true
+                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Загружено %d пользователей", #userRoles)), -1)
+                    else
+                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка парсинга JSON из Supabase"), -1)
                     end
+                else
+                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка чтения файла ролей"), -1)
                 end
             end)
+        else
+            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки из Supabase. Статус: %d", status)), -1)
         end
     end, headers)
 end
@@ -569,6 +579,13 @@ function main()
     end)
     
     sampRegisterChatCommand("listusers", function()
+        local _, myId = sampGetPlayerIdByCharHandle(PLAYER_PED)
+        local myName = myId and sampGetPlayerNickname(myId) or "unknown"
+        local cleanName = myName:gsub("_", " ")
+        local myRole = userRoles[cleanName] or userRoles[myName] or "none"
+        
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Твой ник: %s (%s). Роль: %s", myName, cleanName, myRole)), -1)
+        
         if not isDeveloper() then
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
             return
