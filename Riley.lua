@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.6
+local script_version = 4.7
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -355,6 +355,8 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             end
             
             mimgui.Spacing()
+            mimgui.TextWrapped("{FF0000}Внимание: Изменения сохраняются только локально (в памяти). При перезагрузке скрипта изменения сбросятся. Для постоянного хранения нужно интеграция с Supabase.")
+            mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
             if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() end
@@ -599,6 +601,12 @@ function main()
         end
         if arg == "" then
             sampAddChatMessage(u8:decode("Используйте: /removeuser [ник]"), -1)
+            return
+        end
+        
+        -- Проверяем существует ли пользователь
+        if not userRoles[arg] and not userRoles[arg:gsub(" ", "_")] then
+            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}%s не найден в списке", arg)), -1)
             return
         end
         
