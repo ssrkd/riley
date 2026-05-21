@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.7
+local script_version = 5.8
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -203,6 +203,10 @@ local function loadRolesFromSupabase()
                     os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
                     
                     sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Получено данных: %d символов", #content)), -1)
+                    
+                    -- Логируем первые 100 символов для отладки
+                    local preview = content:sub(1, 100)
+                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Пример данных: %s", preview)), -1)
                     
                     local ok, data = pcall(loadstring("return " .. content))
                     if ok and data and type(data) == "table" then
