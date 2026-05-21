@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 7.5
+local script_version = 7.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -41,6 +41,16 @@ local function loadRolesFromFile()
             end
             sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены из файла: %d пользователей", count)), -1)
         end
+    else
+        -- Если файла нет, создаем с хардкод владельцев
+        userRoles = {
+            ["Sakura Riley"] = "owner",
+            ["Sakura_Riley"] = "owner",
+            ["Kai Riley"] = "owner",
+            ["Kai_Riley"] = "owner"
+        }
+        saveRolesToFile()
+        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Создан файл ролей с владельцами по умолчанию"), -1)
     end
 end
 
@@ -405,8 +415,6 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
                 sampSendChat("/listusers")
             end
             
-            mimgui.Spacing()
-            mimgui.TextWrapped("{FF0000}Внимание: Добавление/удаление пользователей только через Supabase Dashboard.")
             mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
