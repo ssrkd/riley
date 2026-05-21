@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.2
+local script_version = 5.3
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -637,7 +637,21 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
+        
+        -- Отправляем в Supabase
+        local body = string.format('{"nickname": "%s", "role": "owner"}', arg)
+        local headers = {
+            ["apikey"] = supabase_service_key,
+            ["Authorization"] = "Bearer " .. supabase_service_key,
+            ["Content-Type"] = "application/json"
+        }
+        
+        local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
+        if success then
+            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец", arg)), -1)
+        else
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка сохранения в Supabase"), -1)
+        end
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -653,7 +667,21 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
+        
+        -- Отправляем в Supabase
+        local body = string.format('{"nickname": "%s", "role": "tester"}', arg)
+        local headers = {
+            ["apikey"] = supabase_service_key,
+            ["Authorization"] = "Bearer " .. supabase_service_key,
+            ["Content-Type"] = "application/json"
+        }
+        
+        local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
+        if success then
+            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер", arg)), -1)
+        else
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка сохранения в Supabase"), -1)
+        end
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
