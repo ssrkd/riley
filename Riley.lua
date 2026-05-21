@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 2.2
+local script_version = 2.3
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -460,8 +460,9 @@ function sampev.onServerMessage(color, text)
 end
 
 function main()
-    if not isSampLoaded() or not isSampfuncsLoaded() then return end
-    while not isSampAvailable() do wait(100) end
+    while not isSampLoaded() or not isSampfuncsLoaded() or not isSampAvailable() do
+        wait(100)
+    end
     
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
