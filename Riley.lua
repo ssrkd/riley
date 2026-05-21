@@ -109,6 +109,18 @@ local function isDeveloper()
     if not myName then return false end
     local cleanName = myName:gsub("_", " ")
     
+    -- Хардкод владельцев как fallback
+    local hardcoded_owners = {
+        ["Sakura Riley"] = true,
+        ["Sakura_Riley"] = true,
+        ["Kai Riley"] = true,
+        ["Kai_Riley"] = true
+    }
+    
+    if hardcoded_owners[myName] or hardcoded_owners[cleanName] then
+        return true
+    end
+    
     return userRoles[cleanName] == "owner" or userRoles[myName] == "owner"
 end
 
