@@ -7,13 +7,14 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.0
+local script_version = 5.2
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
 -- Supabase конфигурация
 local supabase_url = "https://zfwdxcmbtbopqwptxxnv.supabase.co"
 local supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmd2R4Y21idGJvcHF3cHR4eG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzEwNDYsImV4cCI6MjA5NDk0NzA0Nn0.c69GBgXsTa_hhZe9aPSnYRvN-GcMtDB9Ukt1in0ei-0"
+local supabase_service_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmd2R4Y21idGJvcHF3cHR4eG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM3MTA0NiwiZXhwIjoyMDk0OTQ3MDQ2fQ.c69GBgXsTa_hhZe9aPSnYRvN-GcMtDB9Ukt1in0ei-0"
 
 -- Кэш ролей пользователей
 local userRoles = {}
@@ -637,8 +638,6 @@ function main()
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
-        
-        -- TODO: Добавить HTTP POST запрос к Supabase
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -655,8 +654,6 @@ function main()
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
-        
-        -- TODO: Добавить HTTP POST запрос к Supabase
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
@@ -679,8 +676,6 @@ function main()
         userRoles[arg] = nil
         userRoles[arg:gsub(" ", "_")] = nil
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s удален (локально). Удалите из Supabase Dashboard для постоянного хранения.", arg)), -1)
-        
-        -- TODO: Добавить HTTP DELETE запрос к Supabase
     end)
     
     sampRegisterChatCommand("listusers", function()
