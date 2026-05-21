@@ -460,7 +460,8 @@ function sampev.onServerMessage(color, text)
 end
 
 function main()
-    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Инициализация скрипта..."), -1)
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Инициализация скрипта... Версия: %.1f", script_version)), -1)
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Путь скрипта: %s", thisScript().path)), -1)
     
     while not isSampLoaded() or not isSampfuncsLoaded() or not isSampAvailable() do
         wait(100)
