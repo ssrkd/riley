@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.3
+local script_version = 6.4
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -145,22 +145,22 @@ local function httpPost(url, body, headers)
     
     local ltn12 = require "ltn12"
     
-    -- Формируем headers
-    local headers_table = {}
-    for k, v in pairs(headers) do
-        headers_table[k] = v
-    end
+    -- Формируем headers с apikey в URL вместо headers
+    local url_with_key = url .. "?apikey=" .. supabase_key
+    local headers_table = {
+        ["Content-Type"] = "application/json"
+    }
     
     local response_body = {}
     local result, code, response_headers, status = https.request{
-        url = url,
+        url = url_with_key,
         method = "POST",
         headers = headers_table,
         source = ltn12.source.string(body),
         sink = ltn12.sink.table(response_body)
     }
     
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTPS POST: code=%s, result=%s", tostring(code), tostring(result))), -1)
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTPS POST: code=%s", tostring(code))), -1)
     
     if code == 200 or code == 201 then
         return true
@@ -635,11 +635,7 @@ function main()
         -- Отправляем в Supabase через socket
         lua_thread.create(function()
             local body = string.format('{"nickname": "%s", "role": "owner"}', arg)
-            local headers = {
-                ["apikey"] = supabase_service_key,
-                ["Authorization"] = "Bearer " .. supabase_service_key,
-                ["Content-Type"] = "application/json"
-            }
+            local headers = {}
             
             local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
             if success then
@@ -667,11 +663,7 @@ function main()
         -- Отправляем в Supabase через socket
         lua_thread.create(function()
             local body = string.format('{"nickname": "%s", "role": "tester"}', arg)
-            local headers = {
-                ["apikey"] = supabase_service_key,
-                ["Authorization"] = "Bearer " .. supabase_service_key,
-                ["Content-Type"] = "application/json"
-            }
+            local headers = {}
             
             local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
             if success then
