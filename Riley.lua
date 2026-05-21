@@ -7,9 +7,9 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.3
-local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json?t=" .. os.time()
-local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua?t=" .. os.time()
+local script_version = 4.4
+local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
+local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
 -- Supabase конфигурация
 local supabase_url = "https://zfwdxcmbtbopqwptxxnv.supabase.co"
@@ -728,8 +728,10 @@ function checkUpdate()
         end
     end
     
+    -- Добавляем timestamp для обхода кэша
+    local cache_buster = "?t=" .. os.time()
     
-    downloadUrlToFile(version_url, f_path, function(id, status, p1, p2)
+    downloadUrlToFile(version_url .. cache_buster, f_path, function(id, status, p1, p2)
         if status == 6 then -- Download finished successfully
             lua_thread.create(function()
                 local success, err = pcall(function()
