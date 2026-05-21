@@ -651,7 +651,11 @@ function checkUpdate()
                     sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Файл версии загружен."), -1)
                     sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Содержимое: " .. content), -1)
                     
-                    local version_str = content:match('"version"%s*:%s*([%d%.%,]+)') or content:match('"version"%s*:%s*(%d+%.?%d*)')
+                    local version_str = content:match('"version"%s*:%s*([%d%.]+)') or content:match('"version"%s*:%s*(%d+%.?%d*)')
+                    -- Убираем запятые и пробелы в конце
+                    if version_str then
+                        version_str = version_str:gsub("[,%s]", "")
+                    end
                     sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Распознанная строка версии: %s", version_str or "nil")), -1)
                     
                     local new_version = parseVersion(version_str)
