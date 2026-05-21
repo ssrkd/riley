@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.11
+local script_version = 4.0
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -693,11 +693,14 @@ end
 
 local function parseVersion(str)
     if not str then return nil end
+    -- Прямое преобразование в число (работает для 3.10, 3.11 и т.д.)
     local val = tonumber(str)
     if val then return val end
-    val = tonumber((str:gsub("%.", ",")))
-    if val then return val end
+    -- Если с запятой, заменяем на точку
     val = tonumber((str:gsub(",", ".")))
+    if val then return val end
+    -- Если с точкой как разделителем дробей, заменяем на запятую
+    val = tonumber((str:gsub("%.", ",")))
     if val then return val end
     return nil
 end
