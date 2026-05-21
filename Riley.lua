@@ -7,9 +7,17 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.8
+local script_version = 3.9
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
+
+-- Supabase конфигурация
+local supabase_url = "https://zfwdxcmbtbopqwptxxnv.supabase.co"
+local supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmd2R4Y21idGJvcHF3cHR4eG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzEwNDYsImV4cCI6MjA5NDk0NzA0Nn0.c69GBgXsTa_hhZe9aPSnYRvN-GcMtDB9Ukt1in0ei-0"
+
+-- Кэш ролей пользователей
+local userRoles = {}
+local rolesLoaded = false
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
@@ -100,8 +108,7 @@ local function isDeveloper()
     if not myName then return false end
     local cleanName = myName:gsub("_", " ")
     
-    -- Только ты и твои друзья-основатели могут быть разработчиками
-    return founders[cleanName]
+    return userRoles[cleanName] == "owner" or userRoles[myName] == "owner"
 end
 
 local function isTester()
@@ -112,7 +119,42 @@ local function isTester()
     if not myName then return false end
     local cleanName = myName:gsub("_", " ")
     
-    return testers[cleanName] == true or testers[myName] == true
+    return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
+end
+
+-- Загрузка ролей из Supabase
+local function loadRolesFromSupabase()
+    local url = supabase_url .. "/rest/v1/users?select=nickname,role"
+    local headers = {
+        ["apikey"] = supabase_key,
+        ["Authorization"] = "Bearer " .. supabase_key,
+        ["Content-Type"] = "application/json"
+    }
+    
+    downloadUrlToFile(url, getWorkingDirectory() .. "/config/roles_tmp.json", function(id, status, p1, p2)
+        if status == 6 then
+            lua_thread.create(function()
+                wait(500)
+                local f = io.open(getWorkingDirectory() .. "/config/roles_tmp.json", "r")
+                if f then
+                    local content = f:read("*a")
+                    f:close()
+                    os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
+                    
+                    local ok, data = pcall(loadstring("return " .. content))
+                    if ok and data and type(data) == "table" then
+                        userRoles = {}
+                        for _, user in ipairs(data) do
+                            if user.nickname and user.role then
+                                userRoles[user.nickname] = user.role
+                            end
+                        end
+                        rolesLoaded = true
+                    end
+                end
+            end)
+        end
+    end, headers)
 end
 
 local function isFounder()
@@ -434,24 +476,24 @@ function sampev.onServerMessage(color, text)
         local modified = text
         local changed = false
         
-        local function checkAndHighlight(nameMap, colorTag)
-            for name, _ in pairs(nameMap) do
-                local name1 = name:gsub("_", " ")
-                local name2 = name:gsub(" ", "_")
-                
-                -- Ищем имя в тексте
-                if modified:find(name1) or modified:find(name2) then
-                    local target = modified:find(name1) and name1 or name2
-                    -- Экранируем спецсимволы для безопасного gsub (хотя в никах их обычно нет)
-                    local pattern = target:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
-                    modified = modified:gsub(pattern, colorTag .. target .. hexColor)
-                    changed = true
+        local function checkAndHighlight(role, colorTag)
+            for nickname, userRole in pairs(userRoles) do
+                if userRole == role then
+                    local name1 = nickname:gsub("_", " ")
+                    local name2 = nickname:gsub(" ", "_")
+                    
+                    if modified:find(name1) or modified:find(name2) then
+                        local target = modified:find(name1) and name1 or name2
+                        local pattern = target:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+                        modified = modified:gsub(pattern, colorTag .. target .. hexColor)
+                        changed = true
+                    end
                 end
             end
         end
 
-        checkAndHighlight(founders, "{" .. floatToHex(settings.devColor) .. "}")      -- Цвет для разработчиков
-        checkAndHighlight(testers, "{" .. floatToHex(settings.testerColor) .. "}")       -- Цвет для тестеров
+        checkAndHighlight("owner", "{" .. floatToHex(settings.devColor) .. "}")
+        checkAndHighlight("tester", "{" .. floatToHex(settings.testerColor) .. "}")
         
         if changed then
             return {color, modified}
@@ -463,6 +505,8 @@ function main()
     while not isSampLoaded() or not isSampfuncsLoaded() or not isSampAvailable() do
         wait(100)
     end
+    
+    loadRolesFromSupabase()
     
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
@@ -496,6 +540,44 @@ function main()
                 name = string.gsub(name, "_", " ")
                 sampSendChat(u8:decode(string.format("/r %s, доложите Ваше местоположение.", name)))
             end
+        end
+    end)
+    
+    -- Команды управления пользователями (только для владельцев)
+    sampRegisterChatCommand("addowner", function(arg)
+        if not isDeveloper() then
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
+            return
+        end
+        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для добавления владельцев."), -1)
+    end)
+    
+    sampRegisterChatCommand("addtester", function(arg)
+        if not isDeveloper() then
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
+            return
+        end
+        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для добавления тестеров."), -1)
+    end)
+    
+    sampRegisterChatCommand("removeuser", function(arg)
+        if not isDeveloper() then
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
+            return
+        end
+        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте Supabase Dashboard для удаления пользователей."), -1)
+    end)
+    
+    sampRegisterChatCommand("listusers", function()
+        if not isDeveloper() then
+            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
+            return
+        end
+        
+        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Список пользователей:"), -1)
+        for nickname, role in pairs(userRoles) do
+            local roleText = role == "owner" and "Владелец" or "Тестер"
+            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - %s", nickname, roleText)), -1)
         end
     end)
 
