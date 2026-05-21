@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.0
+local script_version = 4.1
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -122,49 +122,25 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- Загрузка ролей из Supabase
+-- Загрузка ролей из Supabase (временно отключена - downloadUrlToFile не поддерживает headers)
 local function loadRolesFromSupabase()
-    local url = supabase_url .. "/rest/v1/users?select=nickname,role"
-    local headers = {
-        ["apikey"] = supabase_key,
-        ["Authorization"] = "Bearer " .. supabase_key,
-        ["Content-Type"] = "application/json"
+    -- Временно используем локальный список пока не найдем способ загрузки с headers
+    userRoles = {
+        ["Sakura Riley"] = "owner",
+        ["Sakura_Riley"] = "owner",
+        ["Kai Riley"] = "owner",
+        ["Kai_Riley"] = "owner",
+        ["Klim Rozhdestvensky"] = "tester",
+        ["Klim_Rozhdestvensky"] = "tester"
     }
+    rolesLoaded = true
     
-    downloadUrlToFile(url, getWorkingDirectory() .. "/config/roles_tmp.json", function(id, status, p1, p2)
-        if status == 6 then
-            lua_thread.create(function()
-                wait(500)
-                local f = io.open(getWorkingDirectory() .. "/config/roles_tmp.json", "r")
-                if f then
-                    local content = f:read("*a")
-                    f:close()
-                    os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
-                    
-                    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Загружено из Supabase: " .. content), -1)
-                    
-                    local ok, data = pcall(loadstring("return " .. content))
-                    if ok and data and type(data) == "table" then
-                        userRoles = {}
-                        for _, user in ipairs(data) do
-                            if user.nickname and user.role then
-                                userRoles[user.nickname] = user.role
-                                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - %s", user.nickname, user.role)), -1)
-                            end
-                        end
-                        rolesLoaded = true
-                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Загружено %d пользователей", #userRoles)), -1)
-                    else
-                        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка парсинга JSON из Supabase"), -1)
-                    end
-                else
-                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка чтения файла ролей"), -1)
-                end
-            end)
-        else
-            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки из Supabase. Статус: %d", status)), -1)
-        end
-    end, headers)
+    -- Отладка
+    local count = 0
+    for k, v in pairs(userRoles) do
+        count = count + 1
+    end
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены: %d пользователей", count)), -1)
 end
 
 local function isFounder()
@@ -585,6 +561,8 @@ function main()
         local myRole = userRoles[cleanName] or userRoles[myName] or "none"
         
         sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Твой ник: %s (%s). Роль: %s", myName, cleanName, myRole)), -1)
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}userRoles[%s] = %s", cleanName, userRoles[cleanName] or "nil")), -1)
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}userRoles[%s] = %s", myName, userRoles[myName] or "nil")), -1)
         
         if not isDeveloper() then
             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
