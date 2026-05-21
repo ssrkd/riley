@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 7.4
+local script_version = 7.5
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -59,9 +59,6 @@ local function saveRolesToFile()
         f:close()
     end
 end
-
--- Локальный файл с ролями как fallback
-local roles_file = getWorkingDirectory() .. "/config/roles.json"
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
