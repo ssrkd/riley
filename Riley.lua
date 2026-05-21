@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.8
+local script_version = 5.9
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -202,8 +202,6 @@ end
 local function loadRolesFromSupabase()
     local url = supabase_url .. "/rest/v1/users?select=nickname,role&apikey=" .. supabase_key
     
-    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Загрузка ролей из Supabase..."), -1)
-    
     downloadUrlToFile(url, getWorkingDirectory() .. "/config/roles_tmp.json", function(id, status, p1, p2)
         if status == 6 then
             lua_thread.create(function()
@@ -214,12 +212,6 @@ local function loadRolesFromSupabase()
                     f:close()
                     os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
                     
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Получено данных: %d символов", #content)), -1)
-                    
-                    -- Логируем первые 100 символов для отладки
-                    local preview = content:sub(1, 100)
-                    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Пример данных: %s", preview)), -1)
-                    
                     local ok, data = pcall(loadstring("return " .. content))
                     if ok and data and type(data) == "table" then
                         userRoles = {}
@@ -229,21 +221,9 @@ local function loadRolesFromSupabase()
                             end
                         end
                         rolesLoaded = true
-                        
-                        local count = 0
-                        for k, v in pairs(userRoles) do
-                            count = count + 1
-                        end
-                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены из Supabase: %d пользователей", count)), -1)
-                    else
-                        sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка парсинга JSON. ok=%s, type=%s", tostring(ok), type(data))), -1)
                     end
-                else
-                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть файл ролей"), -1)
                 end
             end)
-        else
-            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки из Supabase. Статус: %d", status)), -1)
         end
     end)
 end
@@ -680,21 +660,7 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
-        
-        -- Отправляем в Supabase
-        local body = string.format('{"nickname": "%s", "role": "owner"}', arg)
-        local headers = {
-            ["apikey"] = supabase_service_key,
-            ["Authorization"] = "Bearer " .. supabase_service_key,
-            ["Content-Type"] = "application/json"
-        }
-        
-        local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
-        if success then
-            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец", arg)), -1)
-        else
-            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка сохранения в Supabase"), -1)
-        end
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально)", arg)), -1)
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -710,21 +676,7 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
-        
-        -- Отправляем в Supabase
-        local body = string.format('{"nickname": "%s", "role": "tester"}', arg)
-        local headers = {
-            ["apikey"] = supabase_service_key,
-            ["Authorization"] = "Bearer " .. supabase_service_key,
-            ["Content-Type"] = "application/json"
-        }
-        
-        local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
-        if success then
-            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер", arg)), -1)
-        else
-            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка сохранения в Supabase"), -1)
-        end
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально)", arg)), -1)
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
