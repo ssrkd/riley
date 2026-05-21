@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.7
+local script_version = 5.0
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -122,25 +122,34 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- Загрузка ролей из Supabase (временно отключена - downloadUrlToFile не поддерживает headers)
+-- Загрузка ролей из Supabase через GET запрос (apikey в URL)
 local function loadRolesFromSupabase()
-    -- Временно используем локальный список пока не найдем способ загрузки с headers
-    userRoles = {
-        ["Sakura Riley"] = "owner",
-        ["Sakura_Riley"] = "owner",
-        ["Kai Riley"] = "owner",
-        ["Kai_Riley"] = "owner",
-        ["Klim Rozhdestvensky"] = "tester",
-        ["Klim_Rozhdestvensky"] = "tester"
-    }
-    rolesLoaded = true
+    local url = supabase_url .. "/rest/v1/users?select=nickname,role&apikey=" .. supabase_key
     
-    -- Отладка
-    local count = 0
-    for k, v in pairs(userRoles) do
-        count = count + 1
-    end
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены: %d пользователей", count)), -1)
+    downloadUrlToFile(url, getWorkingDirectory() .. "/config/roles_tmp.json", function(id, status, p1, p2)
+        if status == 6 then
+            lua_thread.create(function()
+                wait(500)
+                local f = io.open(getWorkingDirectory() .. "/config/roles_tmp.json", "r")
+                if f then
+                    local content = f:read("*a")
+                    f:close()
+                    os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
+                    
+                    local ok, data = pcall(loadstring("return " .. content))
+                    if ok and data and type(data) == "table" then
+                        userRoles = {}
+                        for _, user in ipairs(data) do
+                            if user.nickname and user.role then
+                                userRoles[user.nickname] = user.role
+                            end
+                        end
+                        rolesLoaded = true
+                    end
+                end
+            end)
+        end
+    end)
 end
 
 local function isFounder()
@@ -572,10 +581,10 @@ function main()
             return
         end
         
-        -- Добавляем оба варианта ника
+        -- Добавляем локально
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец", arg)), -1)
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -588,10 +597,10 @@ function main()
             return
         end
         
-        -- Добавляем оба варианта ника
+        -- Добавляем локально
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер", arg)), -1)
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально). Добавьте в Supabase Dashboard для постоянного хранения.", arg)), -1)
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
@@ -610,10 +619,10 @@ function main()
             return
         end
         
-        -- Удаляем оба варианта ника
+        -- Удаляем локально
         userRoles[arg] = nil
         userRoles[arg:gsub(" ", "_")] = nil
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s удален", arg)), -1)
+        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s удален (локально). Удалите из Supabase Dashboard для постоянного хранения.", arg)), -1)
     end)
     
     sampRegisterChatCommand("listusers", function()
