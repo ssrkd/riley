@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 7.7
+local script_version = 7.8
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -19,56 +19,6 @@ local supabase_service_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 -- Кэш ролей пользователей
 local userRoles = {}
 local rolesLoaded = false
-
--- Локальный файл с ролями как fallback
-local roles_file = getWorkingDirectory() .. "/config/roles.json"
-
--- Загрузка ролей из локального файла (fallback)
-local function loadRolesFromFile()
-    local f = io.open(roles_file, "r")
-    if f then
-        local content = f:read("*a")
-        f:close()
-        
-        local ok, data = pcall(loadstring("return " .. content))
-        if ok and data and type(data) == "table" then
-            userRoles = data
-            rolesLoaded = true
-            
-            local count = 0
-            for k, v in pairs(userRoles) do
-                count = count + 1
-            end
-            sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Роли загружены из файла: %d пользователей", count)), -1)
-        end
-    else
-        -- Если файла нет, создаем с хардкод владельцев
-        userRoles = {
-            ["Sakura Riley"] = "owner",
-            ["Sakura_Riley"] = "owner",
-            ["Kai Riley"] = "owner",
-            ["Kai_Riley"] = "owner"
-        }
-        saveRolesToFile()
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Создан файл ролей с владельцами по умолчанию"), -1)
-    end
-end
-
--- Сохранение ролей в локальный файл
-local function saveRolesToFile()
-    local f = io.open(roles_file, "w")
-    if f then
-        f:write("{")
-        local first = true
-        for nickname, role in pairs(userRoles) do
-            if not first then f:write(",") end
-            f:write(string.format('["%s"]="%s"', nickname, role))
-            first = false
-        end
-        f:write("}")
-        f:close()
-    end
-end
 
 local showMenu = mimgui.new.bool(false)
 local showAct = mimgui.new.bool(false)
