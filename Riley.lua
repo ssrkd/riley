@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 7.8
+local script_version = 7.9
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -358,14 +358,6 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             
             mimgui.Spacing()
             mimgui.Separator()
-            mimgui.Text("Команды управления:")
-            mimgui.Spacing()
-            
-            if mimgui.Button("/listusers") then
-                sampSendChat("/listusers")
-            end
-            
-            mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
             if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() end
@@ -570,30 +562,6 @@ function main()
         end
     end)
     
-    -- Команда списка пользователей (только для владельцев)
-    sampRegisterChatCommand("listusers", function()
-        if not isDeveloper() then
-            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Только владельцы могут использовать эту команду."), -1)
-            return
-        end
-        
-        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Список пользователей:"), -1)
-        
-        local hasUsers = false
-        for nickname, role in pairs(userRoles) do
-            if role == "owner" then
-                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s - Владелец", nickname)), -1)
-                hasUsers = true
-            elseif role == "tester" then
-                sampAddChatMessage(u8:decode(string.format("{00FF00}[Riley System] {FFFFFF}%s - Тестер", nickname)), -1)
-                hasUsers = true
-            end
-        end
-        
-        if not hasUsers then
-            sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Список пуст"), -1)
-        end
-    end)
 
     lua_thread.create(function()
         checkUpdate()
