@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.4
+local script_version = 6.5
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -145,11 +145,14 @@ local function httpPost(url, body, headers)
     
     local ltn12 = require "ltn12"
     
-    -- Формируем headers с apikey в URL вместо headers
+    -- Формируем headers с apikey в URL и Prefer header
     local url_with_key = url .. "?apikey=" .. supabase_key
     local headers_table = {
-        ["Content-Type"] = "application/json"
+        ["Content-Type"] = "application/json",
+        ["Prefer"] = "return=minimal"
     }
+    
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}Body: %s", body)), -1)
     
     local response_body = {}
     local result, code, response_headers, status = https.request{
@@ -634,7 +637,7 @@ function main()
         
         -- Отправляем в Supabase через socket
         lua_thread.create(function()
-            local body = string.format('{"nickname": "%s", "role": "owner"}', arg)
+            local body = string.format('[{"nickname": "%s", "role": "owner"}]', arg)
             local headers = {}
             
             local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
@@ -662,7 +665,7 @@ function main()
         
         -- Отправляем в Supabase через socket
         lua_thread.create(function()
-            local body = string.format('{"nickname": "%s", "role": "tester"}', arg)
+            local body = string.format('[{"nickname": "%s", "role": "tester"}]', arg)
             local headers = {}
             
             local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
