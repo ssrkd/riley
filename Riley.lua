@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 4.2
+local script_version = 4.3
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json?t=" .. os.time()
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua?t=" .. os.time()
 
@@ -312,17 +312,22 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text("Текущий состав команды:")
             mimgui.Spacing()
             
-            mimgui.TextColored(mimgui.ImVec4(0.0, 1.0, 1.0, 1.0), "Разработчики (Основатели):")
-            for name, _ in pairs(founders) do
-                mimgui.Text("- " .. name)
+            mimgui.TextColored(mimgui.ImVec4(0.0, 1.0, 1.0, 1.0), "Владельцы:")
+            local hasOwners = false
+            for nickname, role in pairs(userRoles) do
+                if role == "owner" and not nickname:find("_") then
+                    mimgui.Text("- " .. nickname)
+                    hasOwners = true
+                end
             end
+            if not hasOwners then mimgui.Text("Список владельцев пуст.") end
             
             mimgui.Spacing()
-            mimgui.TextColored(mimgui.ImVec4(1.0, 0.3, 0.3, 1.0), "Тестеры (Красный цвет):")
+            mimgui.TextColored(mimgui.ImVec4(1.0, 0.3, 0.3, 1.0), "Тестеры:")
             local hasTesters = false
-            for name, _ in pairs(testers) do
-                if not name:find("_") then
-                    mimgui.Text("- " .. name)
+            for nickname, role in pairs(userRoles) do
+                if role == "tester" and not nickname:find("_") then
+                    mimgui.Text("- " .. nickname)
                     hasTesters = true
                 end
             end
@@ -330,12 +335,32 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             
             mimgui.Spacing()
             mimgui.Separator()
-            mimgui.TextWrapped("Настройка ролей теперь производится СТРОГО через исходный код скрипта для обеспечения максимальной безопасности. Чтобы добавить тестера, отредактируйте таблицу 'testers' в начале файла.")
+            mimgui.Text("Команды управления:")
+            mimgui.Spacing()
+            
+            if mimgui.Button("/listusers - Показать список пользователей") then
+                sampSendChat("/listusers")
+            end
+            mimgui.SameLine()
+            if mimgui.Button("/addowner [ник] - Добавить владельца") then
+                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /addowner [ник]"), -1)
+            end
+            
+            if mimgui.Button("/addtester [ник] - Добавить тестера") then
+                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /addtester [ник]"), -1)
+            end
+            mimgui.SameLine()
+            if mimgui.Button("/removeuser [ник] - Удалить пользователя") then
+                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Используйте чат команду: /removeuser [ник]"), -1)
+            end
+            
+            mimgui.Spacing()
+            mimgui.TextWrapped("Примечание: Для добавления/удаления пользователей используйте Supabase Dashboard.")
             
             mimgui.Spacing()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
-            if mimgui.ColorEdit3("Цвет Разработчиков", settings.devColor) then saveSettings() end
+            if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() end
             if mimgui.ColorEdit3("Цвет Тестеров", settings.testerColor) then saveSettings() end
         end
         
