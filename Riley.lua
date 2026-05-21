@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.5
+local script_version = 7.0
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -135,42 +135,6 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- HTTP POST запрос через luasec (HTTPS без редиректов)
-local function httpPost(url, body, headers)
-    local ok, https = pcall(require, "ssl.https")
-    if not ok then
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: ssl.https не доступен"), -1)
-        return false
-    end
-    
-    local ltn12 = require "ltn12"
-    
-    -- Формируем headers с apikey в URL и Prefer header
-    local url_with_key = url .. "?apikey=" .. supabase_key
-    local headers_table = {
-        ["Content-Type"] = "application/json",
-        ["Prefer"] = "return=minimal"
-    }
-    
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}Body: %s", body)), -1)
-    
-    local response_body = {}
-    local result, code, response_headers, status = https.request{
-        url = url_with_key,
-        method = "POST",
-        headers = headers_table,
-        source = ltn12.source.string(body),
-        sink = ltn12.sink.table(response_body)
-    }
-    
-    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTPS POST: code=%s", tostring(code))), -1)
-    
-    if code == 200 or code == 201 then
-        return true
-    else
-        return false
-    end
-end
 
 -- Загрузка ролей из Supabase через GET запрос (apikey в URL)
 local function loadRolesFromSupabase()
