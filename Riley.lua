@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 6.0
+local script_version = 6.1
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -137,7 +137,12 @@ end
 
 -- HTTP POST запрос через socket (более надежный метод)
 local function httpPost(url, body, headers)
-    local socket = require "socket"
+    local ok, socket = pcall(require, "socket")
+    if not ok then
+        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: socket библиотека не доступна"), -1)
+        return false
+    end
+    
     local http = require "socket.http"
     local ltn12 = require "ltn12"
     
@@ -155,6 +160,8 @@ local function httpPost(url, body, headers)
         source = ltn12.source.string(body),
         sink = ltn12.sink.table(response_body)
     }
+    
+    sampAddChatMessage(u8:decode(string.format("{FFFF00}[Debug] {FFFFFF}HTTP POST: code=%s, result=%s", tostring(code), tostring(result))), -1)
     
     if code == 200 or code == 201 then
         return true
