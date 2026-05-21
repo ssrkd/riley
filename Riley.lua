@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 3.5
+local script_version = 3.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json?t=" .. os.time()
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua?t=" .. os.time()
 
