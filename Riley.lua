@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 5.9
+local script_version = 6.0
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -135,67 +135,32 @@ local function isTester()
     return userRoles[cleanName] == "tester" or userRoles[myName] == "tester"
 end
 
--- HTTP POST запрос с headers через ffi
-local function httpPost(url, body, headers, callback)
-    local ok, wininet = pcall(ffi.load, "wininet")
-    if not ok then
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: wininet не доступен"), -1)
-        return false
-    end
-    
-    ffi.cdef[[
-        typedef void* HINTERNET;
-        HINTERNET InternetOpenA(const char* lpszAgent, DWORD dwAccessType, const char* lpszProxy, const char* lpszProxyBypass, DWORD dwFlags);
-        HINTERNET InternetConnectA(HINTERNET hInternet, const char* lpszServerName, INTERNET_PORT nServerPort, const char* lpszUsername, const char* lpszPassword, DWORD dwService, DWORD dwFlags, DWORD_PTR dwContext);
-        HINTERNET HttpOpenRequestA(HINTERNET hConnect, const char* lpszVerb, const char* lpszObjectName, const char* lpszVersion, const char* lpszReferrer, const char* lpszAcceptTypes, DWORD dwFlags, DWORD_PTR dwContext);
-        BOOL HttpSendRequestA(HINTERNET hRequest, const char* lpszHeaders, DWORD dwHeadersLength, const void* lpOptional, DWORD dwOptionalLength);
-        BOOL InternetReadFile(HINTERNET hFile, void* lpBuffer, DWORD dwNumberOfBytesToRead, DWORD* lpdwNumberOfBytesRead);
-        BOOL InternetCloseHandle(HINTERNET hInternet);
-        typedef unsigned short INTERNET_PORT;
-    ]]
-    
-    local hInternet = wininet.InternetOpenA("Riley", 1, nil, nil, 0)
-    if hInternet == nil then
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка InternetOpen"), -1)
-        return false
-    end
-    
-    local server = supabase_url:match("https://(.+)")
-    local hConnect = wininet.InternetConnectA(hInternet, server, 443, nil, nil, 3, 0, 0)
-    if hConnect == nil then
-        wininet.InternetCloseHandle(hInternet)
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка InternetConnect"), -1)
-        return false
-    end
-    
-    local hRequest = wininet.HttpOpenRequestA(hConnect, "POST", "/rest/v1/users", nil, nil, nil, 0, 0)
-    if hRequest == nil then
-        wininet.InternetCloseHandle(hConnect)
-        wininet.InternetCloseHandle(hInternet)
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка HttpOpenRequest"), -1)
-        return false
-    end
+-- HTTP POST запрос через socket (более надежный метод)
+local function httpPost(url, body, headers)
+    local socket = require "socket"
+    local http = require "socket.http"
+    local ltn12 = require "ltn12"
     
     -- Формируем headers
-    local headers_str = ""
+    local headers_table = {}
     for k, v in pairs(headers) do
-        headers_str = headers_str .. k .. ": " .. v .. "\r\n"
+        headers_table[k] = v
     end
     
-    local success = wininet.HttpSendRequestA(hRequest, headers_str, #headers_str, body, #body)
-    if not success then
-        wininet.InternetCloseHandle(hRequest)
-        wininet.InternetCloseHandle(hConnect)
-        wininet.InternetCloseHandle(hInternet)
-        sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка HttpSendRequest"), -1)
+    local response_body = {}
+    local result, code, response_headers, status = http.request{
+        url = url,
+        method = "POST",
+        headers = headers_table,
+        source = ltn12.source.string(body),
+        sink = ltn12.sink.table(response_body)
+    }
+    
+    if code == 200 or code == 201 then
+        return true
+    else
         return false
     end
-    
-    wininet.InternetCloseHandle(hRequest)
-    wininet.InternetCloseHandle(hConnect)
-    wininet.InternetCloseHandle(hInternet)
-    
-    return true
 end
 
 -- Загрузка ролей из Supabase через GET запрос (apikey в URL)
@@ -660,7 +625,23 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "owner"
         userRoles[arg:gsub(" ", "_")] = "owner"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально)", arg)), -1)
+        
+        -- Отправляем в Supabase через socket
+        lua_thread.create(function()
+            local body = string.format('{"nickname": "%s", "role": "owner"}', arg)
+            local headers = {
+                ["apikey"] = supabase_service_key,
+                ["Authorization"] = "Bearer " .. supabase_service_key,
+                ["Content-Type"] = "application/json"
+            }
+            
+            local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
+            if success then
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец", arg)), -1)
+            else
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как владелец (локально, ошибка Supabase)", arg)), -1)
+            end
+        end)
     end)
     
     sampRegisterChatCommand("addtester", function(arg)
@@ -676,7 +657,23 @@ function main()
         -- Добавляем локально
         userRoles[arg] = "tester"
         userRoles[arg:gsub(" ", "_")] = "tester"
-        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально)", arg)), -1)
+        
+        -- Отправляем в Supabase через socket
+        lua_thread.create(function()
+            local body = string.format('{"nickname": "%s", "role": "tester"}', arg)
+            local headers = {
+                ["apikey"] = supabase_service_key,
+                ["Authorization"] = "Bearer " .. supabase_service_key,
+                ["Content-Type"] = "application/json"
+            }
+            
+            local success = httpPost(supabase_url .. "/rest/v1/users", body, headers)
+            if success then
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер", arg)), -1)
+            else
+                sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s добавлен как тестер (локально, ошибка Supabase)", arg)), -1)
+            end
+        end)
     end)
     
     sampRegisterChatCommand("removeuser", function(arg)
