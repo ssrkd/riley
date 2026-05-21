@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 2.7
+local script_version = 2.8
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -460,14 +460,20 @@ function sampev.onServerMessage(color, text)
 end
 
 function main()
+    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Инициализация скрипта..."), -1)
+    
     while not isSampLoaded() or not isSampfuncsLoaded() or not isSampAvailable() do
         wait(100)
     end
+    
+    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}SAMP загружен. Регистрация команд..."), -1)
     
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
         sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Меню: " .. (showMenu[0] and "открыто" or "закрыто")), -1)
     end)
+    
+    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Команда /rh зарегистрирована."), -1)
     
     sampRegisterChatCommand("act", function()
         showAct[0] = not showAct[0]
@@ -627,7 +633,7 @@ function checkUpdate()
     sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Текущая версия: %.1f. Проверка обновлений...", script_version)), -1)
     
     downloadUrlToFile(version_url, f_path, function(id, status, p1, p2)
-        if status == 6 then -- Download finished
+        if status == 6 then -- Download finished successfully
             lua_thread.create(function()
                 wait(500) -- ждём освобождения файла системой
                 local f = io.open(f_path, "r")
@@ -693,8 +699,7 @@ function checkUpdate()
                     sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть локальный файл версии."), -1)
                 end
             end)
-        else
-            sampAddChatMessage(u8:decode(string.format("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки файла версии. Статус: %d", status)), -1)
+        -- Ignore other statuses - they are intermediate download states
         end
     end)
 end
