@@ -623,13 +623,12 @@ function checkUpdate()
         end
     end
     
-    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Проверка обновлений..."), -1)
+    sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}[Авто-обновление] Проверка..."), -1)
     
     downloadUrlToFile(version_url, f_path, function(id, status, p1, p2)
         if status == 6 then -- Download finished
             lua_thread.create(function()
-                wait(250) -- Wait 250ms for Wine to unlock the file
-                sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл версии загружен, чтение..."), -1)
+                wait(500) -- ждём освобождения файла системой
                 local f = io.open(f_path, "r")
                 if f then
                     local content = f:read("*a")
@@ -641,15 +640,13 @@ function checkUpdate()
                     
                     if new_version then
                         local current_ver = parseVersion(tostring(script_version)) or script_version
-                        sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Текущая: %.1f, Новая: %.1f", current_ver, new_version)), -1)
                         
                         if new_version > current_ver then
                             sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Найдено обновление! Загрузка новой версии..."), -1)
                             downloadUrlToFile(update_url, update_tmp, function(id2, status2, p12, p22)
                                 if status2 == 6 then
                                     lua_thread.create(function()
-                                        wait(250) -- Wait for Wine to unlock the update file
-                                        sampAddChatMessage(u8:decode("{FFFF00}[Riley System] {FFFFFF}Файл обновления загружен, проверка..."), -1)
+                                        wait(500) -- ждём освобождения файла системой
                                         local f_up = io.open(update_tmp, "r")
                                         if f_up then
                                             local update_content = f_up:read("*a")
@@ -675,9 +672,6 @@ function checkUpdate()
                                             sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка чтения временного файла обновления."), -1)
                                         end
                                     end)
-                                elseif status2 == 58 then
-                                    sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка загрузки файла! Попробуйте позже."), -1)
-                                    os.remove(update_tmp)
                                 end
                             end)
                         else
@@ -690,8 +684,6 @@ function checkUpdate()
                     sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка: не удалось открыть локальный файл версии."), -1)
                 end
             end)
-        elseif status == 58 then
-            sampAddChatMessage(u8:decode("{FF0000}[Riley System] {FFFFFF}Ошибка проверки обновлений (сетевой сбой)."), -1)
         end
     end)
 end
