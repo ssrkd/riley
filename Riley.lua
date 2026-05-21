@@ -602,6 +602,13 @@ local function parseVersion(str)
     return nil
 end
 
+local function isValidLua(code)
+    local loader = loadstring or load
+    if not loader then return true end
+    local ok, res = pcall(loader, code)
+    return ok and res ~= nil
+end
+
 function checkUpdate()
     local config_dir = getWorkingDirectory() .. "/config"
     local f_path = config_dir .. "/riley_version.tmp"
@@ -629,7 +636,7 @@ function checkUpdate()
                                     local update_content = f_up:read("*a")
                                     f_up:close()
                                     
-                                    if update_content and #update_content > 1000 and update_content:find("mimgui") and loadstring(update_content) then
+                                    if update_content and #update_content > 1000 and update_content:find("mimgui") and isValidLua(update_content) then
                                         local f_main = io.open(thisScript().path, "w")
                                         if f_main then
                                             f_main:write(update_content)
