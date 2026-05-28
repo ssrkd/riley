@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 8.5
+local script_version = 8.6
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -24,6 +24,9 @@ local rolesLoaded = false
 local scriptUsersList = {}
 local lastUsersListUpdate = 0
 local scriptUsersNeedUpdate = false
+
+-- История всех кто запускал скрипт
+local visitorsList = {}
 
 -- Последний номер телефона для быстрого ответа на СМС
 local lastSmsNumber = nil
@@ -202,6 +205,43 @@ local function updateScriptUsersList()
         if a.role ~= b.role then return a.role == "owner" end
         return a.nickname < b.nickname
     end)
+end
+
+local function loadVisitors()
+    local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
+    local f = io.open(path, "r")
+    if not f then return end
+    visitorsList = {}
+    for line in f:lines() do
+        local nick, date = line:match("^(.+)|(.+)$")
+        if nick then
+            table.insert(visitorsList, {nickname = nick, date = date})
+        end
+    end
+    f:close()
+end
+
+local function saveVisitor(nickname)
+    local date = os.date("%d.%m.%Y")
+    local found = false
+    for _, v in ipairs(visitorsList) do
+        if v.nickname == nickname then
+            v.date = date
+            found = true
+            break
+        end
+    end
+    if not found then
+        table.insert(visitorsList, {nickname = nickname, date = date})
+    end
+    local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
+    local f = io.open(path, "w")
+    if f then
+        for _, v in ipairs(visitorsList) do
+            f:write(v.nickname .. "|" .. v.date .. "\n")
+        end
+        f:close()
+    end
 end
 
 local speedTextDrawId = -1
@@ -408,6 +448,29 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Separator()
             if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() end
             if mimgui.ColorEdit3("Цвет Тестеров", settings.testerColor) then saveSettings() end
+            
+            mimgui.Spacing()
+            mimgui.Separator()
+            mimgui.Text("История пользователей скрипта:")
+            mimgui.SameLine()
+            if mimgui.SmallButton("Очистить") then
+                visitorsList = {}
+                local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
+                local f = io.open(path, "w")
+                if f then f:close() end
+            end
+            mimgui.Separator()
+            mimgui.BeginChild("VisitorsList", mimgui.ImVec2(0, 100), true)
+            if #visitorsList == 0 then
+                mimgui.TextDisabled("Пока никто не использовал скрипт.")
+            else
+                for _, v in ipairs(visitorsList) do
+                    mimgui.Text(v.nickname)
+                    mimgui.SameLine()
+                    mimgui.TextDisabled("[" .. v.date .. "]")
+                end
+            end
+            mimgui.EndChild()
         end
         
         mimgui.EndChild()
@@ -572,6 +635,7 @@ function main()
     end
     
     loadRolesFromSupabase()
+    loadVisitors()
     
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
@@ -630,6 +694,7 @@ function main()
                 
                 sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s. Добро пожаловать. Версия скрипта: %.1f", cleanName, script_version)), -1)
                 sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Вы успешно авторизованы как {00FF00}%s{FFFFFF}. Приятного пользования.", role)), -1)
+                saveVisitor(cleanName)
             end
         end
     end)
