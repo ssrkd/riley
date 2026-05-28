@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 8.4
+local script_version = 8.5
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -19,6 +19,11 @@ local supabase_service_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 -- Кэш ролей пользователей
 local userRoles = {}
 local rolesLoaded = false
+
+-- Список пользователей скрипта для Owner Access
+local scriptUsersList = {}
+local lastUsersListUpdate = 0
+local scriptUsersNeedUpdate = false
 
 -- Последний номер телефона для быстрого ответа на СМС
 local lastSmsNumber = nil
@@ -153,16 +158,15 @@ local function loadRolesFromSupabase()
                     f:close()
                     os.remove(getWorkingDirectory() .. "/config/roles_tmp.json")
                     
-                    local ok, data = pcall(loadstring("return " .. content))
-                    if ok and data and type(data) == "table" then
-                        userRoles = {}
-                        for _, user in ipairs(data) do
-                            if user.nickname and user.role then
-                                userRoles[user.nickname] = user.role
-                            end
+                    userRoles = {}
+                    for obj in content:gmatch("{([^}]+)}") do
+                        local nickname = obj:match('"nickname"%s*:%s*"([^"]+)"')
+                        local role = obj:match('"role"%s*:%s*"([^"]+)"')
+                        if nickname and role then
+                            userRoles[nickname] = role
                         end
-                        rolesLoaded = true
                     end
+                    rolesLoaded = true
                 end
             end)
         end
@@ -171,6 +175,33 @@ end
 
 local function isFounder()
     return isDeveloper()
+end
+
+local function updateScriptUsersList()
+    scriptUsersList = {}
+    for nickname, role in pairs(userRoles) do
+        local online = false
+        if isSampAvailable() then
+            for i = 0, 999 do
+                if sampIsPlayerConnected(i) then
+                    local name = sampGetPlayerNickname(i)
+                    if name then
+                        local cleanName = name:gsub("_", " ")
+                        if cleanName == nickname or name == nickname or name == nickname:gsub(" ", "_") then
+                            online = true
+                            break
+                        end
+                    end
+                end
+            end
+        end
+        table.insert(scriptUsersList, {nickname = nickname, role = role, online = online})
+    end
+    table.sort(scriptUsersList, function(a, b)
+        if a.online ~= b.online then return a.online end
+        if a.role ~= b.role then return a.role == "owner" end
+        return a.nickname < b.nickname
+    end)
 end
 
 local speedTextDrawId = -1
@@ -319,7 +350,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text(string.format("Текущая версия скрипта: %.1f", script_version))
             mimgui.Spacing()
             mimgui.TextColored(mimgui.ImVec4(0.9, 0.7, 0.1, 1.0), "Что нового было добавлено:")
-            mimgui.Text("- Последнее обновление: 21 мая 2026 года.")
+            mimgui.Text("- Последнее обновление: 28 мая 2026 года.")
             mimgui.Text("- Добавлен полноэкранный MImGui интерфейс с вкладками.")
             mimgui.Text("- Меню разделено на сайдбар (как в продвинутых хелперах).")
             mimgui.Text("- Рабочий автокорректор для команд /r, /f, /s, /d, /m.")
@@ -335,15 +366,41 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text("Информационная панель владельца")
             mimgui.Separator()
             
-            mimgui.Text("Текущий состав команды:")
-            mimgui.Spacing()
+            -- Пользователи скрипта
+            mimgui.Text("Пользователи скрипта (из базы данных):")
+            mimgui.SameLine()
+            if mimgui.SmallButton("Обновить") then
+                loadRolesFromSupabase()
+                scriptUsersNeedUpdate = true
+            end
+            mimgui.Separator()
             
-            mimgui.TextColored(mimgui.ImVec4(0.0, 1.0, 1.0, 1.0), "Владельцы:")
-            mimgui.Text("Sakura Riley | Mark Travmatov | Kai Riley")
+            local now = os.clock()
+            if scriptUsersNeedUpdate or (now - lastUsersListUpdate > 5.0) then
+                updateScriptUsersList()
+                lastUsersListUpdate = now
+                scriptUsersNeedUpdate = false
+            end
             
-            mimgui.Spacing()
-            mimgui.TextColored(mimgui.ImVec4(1.0, 0.3, 0.3, 1.0), "Тестеры:")
-            mimgui.Text("Klim Rozhdestvensky")
+            mimgui.BeginChild("UsersList", mimgui.ImVec2(0, 150), true)
+            if #scriptUsersList == 0 then
+                mimgui.TextDisabled("Список пуст или данные ещё загружаются...")
+            else
+                for _, user in ipairs(scriptUsersList) do
+                    local dotColor = user.online
+                        and mimgui.ImVec4(0.0, 1.0, 0.0, 1.0)
+                        or  mimgui.ImVec4(0.5, 0.5, 0.5, 1.0)
+                    local nameColor = (user.role == "owner")
+                        and mimgui.ImVec4(0.0, 1.0, 1.0, 1.0)
+                        or  mimgui.ImVec4(1.0, 0.4, 0.4, 1.0)
+                    mimgui.TextColored(dotColor, user.online and "[+]" or "[-]")
+                    mimgui.SameLine()
+                    mimgui.TextColored(nameColor, user.nickname)
+                    mimgui.SameLine()
+                    mimgui.TextDisabled("[" .. user.role .. "]")
+                end
+            end
+            mimgui.EndChild()
             
             mimgui.Spacing()
             mimgui.Separator()
