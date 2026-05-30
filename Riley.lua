@@ -7,7 +7,7 @@ local vkeys = require 'vkeys'
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
 
-local script_version = 8.6
+local script_version = 8.7
 local version_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Rileyversion.json"
 local update_url = "https://raw.githubusercontent.com/ssrkd/riley/main/Riley.lua"
 
@@ -207,41 +207,96 @@ local function updateScriptUsersList()
     end)
 end
 
-local function loadVisitors()
-    local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
-    local f = io.open(path, "r")
-    if not f then return end
-    visitorsList = {}
-    for line in f:lines() do
-        local nick, date = line:match("^(.+)|(.+)$")
-        if nick then
-            table.insert(visitorsList, {nickname = nick, date = date})
+local function loadVisitorsFromSupabase()
+    local url = supabase_url .. "/rest/v1/script_visitors?select=nickname,last_seen&apikey=" .. supabase_key .. "&order=last_seen.desc"
+    downloadUrlToFile(url, getWorkingDirectory() .. "/config/visitors_tmp.json", function(id, status, p1, p2)
+        if status == 6 then
+            lua_thread.create(function()
+                wait(300)
+                local f = io.open(getWorkingDirectory() .. "/config/visitors_tmp.json", "r")
+                if f then
+                    local content = f:read("*a")
+                    f:close()
+                    os.remove(getWorkingDirectory() .. "/config/visitors_tmp.json")
+                    visitorsList = {}
+                    for obj in content:gmatch("{([^}]+)}") do
+                        local nick = obj:match('"nickname"%s*:%s*"([^"]+)"')
+                        local date = obj:match('"last_seen"%s*:%s*"([^"]+)"')
+                        if nick then
+                            table.insert(visitorsList, {nickname = nick, date = date or "?"})
+                        end
+                    end
+                end
+            end)
         end
-    end
-    f:close()
+    end)
 end
 
-local function saveVisitor(nickname)
-    local date = os.date("%d.%m.%Y")
-    local found = false
-    for _, v in ipairs(visitorsList) do
-        if v.nickname == nickname then
-            v.date = date
-            found = true
-            break
+local function registerVisitorAsync(nickname)
+    local tmpFile = getWorkingDirectory() .. "/config/_visitor.json"
+    local date = os.date("%d.%m.%Y %H:%M")
+    local body = string.format('[{"nickname":"%s","last_seen":"%s"}]', nickname, date)
+    local f = io.open(tmpFile, "w")
+    if not f then return end
+    f:write(body)
+    f:close()
+    local url = supabase_url .. "/rest/v1/script_visitors"
+    local cmd = string.format(
+        'start "" /b curl.exe -s -X POST "%s" -H "Content-Type: application/json" -H "apikey: %s" -H "Prefer: resolution=merge-duplicates" --data-binary @"%s"',
+        url, supabase_key, tmpFile
+    )
+    os.execute(cmd)
+end
+
+local function loadColorsFromSupabase()
+    local url = supabase_url .. "/rest/v1/config?select=key,value&apikey=" .. supabase_key
+    downloadUrlToFile(url, getWorkingDirectory() .. "/config/colors_tmp.json", function(id, status, p1, p2)
+        if status == 6 then
+            lua_thread.create(function()
+                wait(300)
+                local f = io.open(getWorkingDirectory() .. "/config/colors_tmp.json", "r")
+                if f then
+                    local content = f:read("*a")
+                    f:close()
+                    os.remove(getWorkingDirectory() .. "/config/colors_tmp.json")
+                    for obj in content:gmatch("{([^}]+)}") do
+                        local key = obj:match('"key"%s*:%s*"([^"]+)"')
+                        local value = obj:match('"value"%s*:%s*"([^"]+)"')
+                        if key and value then
+                            if key == "dev_color" then
+                                local arr = hexToFloat(value)
+                                settings.devColor[0] = arr[1]
+                                settings.devColor[1] = arr[2]
+                                settings.devColor[2] = arr[3]
+                            elseif key == "tester_color" then
+                                local arr = hexToFloat(value)
+                                settings.testerColor[0] = arr[1]
+                                settings.testerColor[1] = arr[2]
+                                settings.testerColor[2] = arr[3]
+                            end
+                        end
+                    end
+                end
+            end)
         end
-    end
-    if not found then
-        table.insert(visitorsList, {nickname = nickname, date = date})
-    end
-    local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
-    local f = io.open(path, "w")
-    if f then
-        for _, v in ipairs(visitorsList) do
-            f:write(v.nickname .. "|" .. v.date .. "\n")
-        end
-        f:close()
-    end
+    end)
+end
+
+local function syncColorsToSupabase()
+    local tmpFile = getWorkingDirectory() .. "/config/_colors.json"
+    local devHex = floatToHex(settings.devColor)
+    local testerHex = floatToHex(settings.testerColor)
+    local body = string.format('[{"key":"dev_color","value":"%s"},{"key":"tester_color","value":"%s"}]', devHex, testerHex)
+    local f = io.open(tmpFile, "w")
+    if not f then return end
+    f:write(body)
+    f:close()
+    local url = supabase_url .. "/rest/v1/config"
+    local cmd = string.format(
+        'start "" /b curl.exe -s -X POST "%s" -H "Content-Type: application/json" -H "apikey: %s" -H "Prefer: resolution=merge-duplicates" --data-binary @"%s"',
+        url, supabase_key, tmpFile
+    )
+    os.execute(cmd)
 end
 
 local speedTextDrawId = -1
@@ -390,7 +445,7 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Text(string.format("Текущая версия скрипта: %.1f", script_version))
             mimgui.Spacing()
             mimgui.TextColored(mimgui.ImVec4(0.9, 0.7, 0.1, 1.0), "Что нового было добавлено:")
-            mimgui.Text("- Последнее обновление: 28 мая 2026 года.")
+            mimgui.Text("- Последнее обновление: 30 мая 2026 года.")
             mimgui.Text("- Добавлен полноэкранный MImGui интерфейс с вкладками.")
             mimgui.Text("- Меню разделено на сайдбар (как в продвинутых хелперах).")
             mimgui.Text("- Рабочий автокорректор для команд /r, /f, /s, /d, /m.")
@@ -446,18 +501,16 @@ mimgui.OnFrame(function() return showMenu[0] end, function()
             mimgui.Separator()
             mimgui.Text("Управление цветами в рации")
             mimgui.Separator()
-            if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() end
-            if mimgui.ColorEdit3("Цвет Тестеров", settings.testerColor) then saveSettings() end
+            if mimgui.ColorEdit3("Цвет Владельцев", settings.devColor) then saveSettings() syncColorsToSupabase() end
+            if mimgui.ColorEdit3("Цвет Тестеров", settings.testerColor) then saveSettings() syncColorsToSupabase() end
+            mimgui.TextDisabled("Цвета синхронизируются с Supabase (все пользователи получат обновление при следующем входе)")
             
             mimgui.Spacing()
             mimgui.Separator()
-            mimgui.Text("История пользователей скрипта:")
+            mimgui.Text("История пользователей скрипта (Supabase):")
             mimgui.SameLine()
-            if mimgui.SmallButton("Очистить") then
-                visitorsList = {}
-                local path = getWorkingDirectory() .. "/config/riley_visitors.txt"
-                local f = io.open(path, "w")
-                if f then f:close() end
+            if mimgui.SmallButton("Обновить##visitors") then
+                loadVisitorsFromSupabase()
             end
             mimgui.Separator()
             mimgui.BeginChild("VisitorsList", mimgui.ImVec2(0, 100), true)
@@ -635,7 +688,8 @@ function main()
     end
     
     loadRolesFromSupabase()
-    loadVisitors()
+    loadVisitorsFromSupabase()
+    loadColorsFromSupabase()
     
     sampRegisterChatCommand("rh", function()
         showMenu[0] = not showMenu[0]
@@ -694,7 +748,7 @@ function main()
                 
                 sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}%s. Добро пожаловать. Версия скрипта: %.1f", cleanName, script_version)), -1)
                 sampAddChatMessage(u8:decode(string.format("{FFFF00}[Riley System] {FFFFFF}Вы успешно авторизованы как {00FF00}%s{FFFFFF}. Приятного пользования.", role)), -1)
-                saveVisitor(cleanName)
+                registerVisitorAsync(cleanName)
             end
         end
     end)
